@@ -1,100 +1,247 @@
 package scholar;
 
 import javax.swing.*;
-import javax.swing.border.LineBorder;
+import javax.swing.border.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 
 public class dashboard extends JFrame {
     private UserDAO userDAO;
     private User currentUser;
+    private Color primaryColor = new Color(25, 118, 210);
+    private Color secondaryColor = new Color(66, 165, 245);
+    private Color backgroundColor = new Color(248, 250, 253);
 
     public dashboard(User loggedInUser) {
-        // Initialize userDAO and currentUser
         userDAO = new UserDAO();
         this.currentUser = loggedInUser;
 
-        this.setTitle("ScholarSync User Dashboard");
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setSize(1920, 1080);
-        this.setLocationRelativeTo(null);
-        this.setLayout(null);
+        setTitle("ScholarSync Dashboard");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1366, 768);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout());
 
-        // Background Panel
-        JPanel background = new JPanel();
-        background.setBackground(new Color(0xF8FAFD));
-        background.setBounds(0, 0, 1920, 1080);
-        background.setLayout(null);
-        this.add(background);
+        // Main Container
+        JPanel mainContainer = new JPanel(new BorderLayout());
+        mainContainer.setBackground(backgroundColor);
 
-        // Dashboard Panel
-        JPanel dashboardPanel = new JPanel();
-        dashboardPanel.setLayout(null);
-        dashboardPanel.setBounds((1920 - 700) / 2, (1080 - 800) / 2, 700, 800); // Panel size
-        dashboardPanel.setBackground(Color.WHITE);
-        dashboardPanel.setBorder(new LineBorder(Color.BLACK, 1, true));
-        background.add(dashboardPanel);
+        // Sidebar
+        JPanel sidebar = createSidebar();
+        mainContainer.add(sidebar, BorderLayout.WEST);
 
-        // Title Label
-        JLabel titleLabel = new JLabel("<html>Welcome, <font color='#0000FF'>" + currentUser.getFirstName() + "!</font></html>", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 26));
-        titleLabel.setBounds(0, 20, 700, 40);
-        dashboardPanel.add(titleLabel);
+        // Content Area
+        JPanel contentArea = createContentArea();
+        mainContainer.add(contentArea, BorderLayout.CENTER);
 
-        // User Information Display
-        JLabel nameLabel = new JLabel("Name: " + currentUser.getFirstName() + " " + currentUser.getLastName());
-        nameLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        nameLabel.setBounds(50, 80, 600, 25);
-        dashboardPanel.add(nameLabel);
+        add(mainContainer);
+        setVisible(true);
+    }
 
-        JLabel emailLabel = new JLabel("Email: " + currentUser.getEmail());
-        emailLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        emailLabel.setBounds(50, 120, 600, 25);
-        dashboardPanel.add(emailLabel);
+    private JPanel createSidebar() {
+        JPanel sidebar = new JPanel();
+        sidebar.setPreferredSize(new Dimension(250, 768));
+        sidebar.setBackground(primaryColor);
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
 
-        JLabel schoolLabel = new JLabel("School: " + currentUser.getSchool());
-        schoolLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        schoolLabel.setBounds(50, 160, 600, 25);
-        dashboardPanel.add(schoolLabel);
+        // Logo Panel
+        JPanel logoPanel = new JPanel();
+        logoPanel.setOpaque(false);
+        logoPanel.setMaximumSize(new Dimension(250, 100));
+        JLabel logoLabel = new JLabel("ScholarSync");
+        logoLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        logoLabel.setForeground(Color.WHITE);
+        logoPanel.add(logoLabel);
 
-        JLabel courseLabel = new JLabel("College Course: " + currentUser.getCollegeCourse());
-        courseLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        courseLabel.setBounds(50, 200, 600, 25);
-        dashboardPanel.add(courseLabel);
+        // User Info Panel
+        JPanel userPanel = new JPanel();
+        userPanel.setOpaque(false);
+        userPanel.setLayout(new BoxLayout(userPanel, BoxLayout.Y_AXIS));
+        userPanel.setMaximumSize(new Dimension(250, 120));
+        userPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        JLabel gpaLabel = new JLabel("GPA: " + currentUser.getGpa());
-        gpaLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        gpaLabel.setBounds(50, 240, 600, 25);
-        dashboardPanel.add(gpaLabel);
+        JLabel welcomeLabel = new JLabel("Welcome,");
+        welcomeLabel.setForeground(Color.WHITE);
+        welcomeLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        
+        JLabel nameLabel = new JLabel(currentUser.getFirstName());
+        nameLabel.setForeground(Color.WHITE);
+        nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
 
-        // Buttons for actions
-        JButton editProfileButton = new JButton("Edit Profile");
-        editProfileButton.setBounds(50, 300, 200, 35);
-        dashboardPanel.add(editProfileButton);
+        userPanel.add(welcomeLabel);
+        userPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        userPanel.add(nameLabel);
 
-        JButton returnButton = new JButton("Return");
-        returnButton.setBounds(50, 350, 200, 35);
-        dashboardPanel.add(returnButton);
+        // Navigation
+        String[] navItems = {"Dashboard", "My Applications", "Profile", "Settings", "Return to Home"};
+        JPanel navPanel = new JPanel();
+        navPanel.setOpaque(false);
+        navPanel.setLayout(new BoxLayout(navPanel, BoxLayout.Y_AXIS));
+        navPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
 
-        // Action listener for edit profile button
-        editProfileButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // Code to navigate to the profile editing screen
-                JOptionPane.showMessageDialog(dashboard.this, "Profile Editing Screen - Under Construction");
+        for (String item : navItems) {
+            JButton navButton = createNavButton(item);
+            navPanel.add(navButton);
+            navPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        }
+
+        sidebar.add(logoPanel);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
+        sidebar.add(userPanel);
+        sidebar.add(navPanel);
+
+        return sidebar;
+    }
+
+    private JButton createNavButton(String text) {
+        JButton button = new JButton(text);
+        button.setMaximumSize(new Dimension(220, 40));
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        button.setForeground(Color.WHITE);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.setFocusPainted(false);
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setMargin(new Insets(0, 20, 0, 0));
+
+        button.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                button.setContentAreaFilled(true);
+                button.setBackground(secondaryColor);
+            }
+
+            public void mouseExited(MouseEvent e) {
+                button.setContentAreaFilled(false);
             }
         });
 
-        // Action listener for logout button
-        returnButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                dispose(); 
-                new MyFrame(currentUser); // Open the login screen again
+        button.addActionListener(e -> {
+            if (text.equals("Return to Home")) {
+                dispose();
+                new MyFrame(currentUser);
             }
         });
 
-        this.setVisible(true);
+        return button;
+    }
+
+    private JPanel createContentArea() {
+        JPanel contentArea = new JPanel(new BorderLayout());
+        contentArea.setBackground(backgroundColor);
+
+        // Header
+        JPanel header = new JPanel();
+        header.setBackground(Color.WHITE);
+        header.setPreferredSize(new Dimension(1116, 60));
+        header.setLayout(new BorderLayout());
+        header.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+
+        JLabel titleLabel = new JLabel("My Dashboard");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        header.add(titleLabel, BorderLayout.WEST);
+
+        contentArea.add(header, BorderLayout.NORTH);
+
+        // Main Content
+        JPanel mainContent = new JPanel();
+        mainContent.setBackground(backgroundColor);
+        mainContent.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        mainContent.setLayout(new BoxLayout(mainContent, BoxLayout.Y_AXIS));
+
+        // Profile Section
+        JPanel profileSection = createProfileSection();
+        mainContent.add(profileSection);
+        mainContent.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // Stats Section
+        JPanel statsSection = createStatsSection();
+        mainContent.add(statsSection);
+
+        JScrollPane scrollPane = new JScrollPane(mainContent);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        contentArea.add(scrollPane, BorderLayout.CENTER);
+
+        return contentArea;
+    }
+
+    private JPanel createProfileSection() {
+        JPanel section = new JPanel();
+        section.setLayout(new BorderLayout());
+        section.setMaximumSize(new Dimension(1076, 200));
+        section.setBackground(Color.WHITE);
+        section.setBorder(BorderFactory.createCompoundBorder(
+            new LineBorder(Color.LIGHT_GRAY, 1),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+
+        // Profile Info
+        JPanel infoPanel = new JPanel(new GridLayout(3, 2, 20, 10));
+        infoPanel.setOpaque(false);
+
+        String[][] info = {
+            {"Full Name", currentUser.getFirstName() + " " + currentUser.getLastName()},
+            {"Email", currentUser.getEmail()},
+            {"School", currentUser.getSchool()},
+            {"Course", currentUser.getCollegeCourse()},
+            {"GPA", String.valueOf(currentUser.getGpa())},
+            {"Student ID", currentUser.getStudentId()}
+        };
+
+        for (String[] item : info) {
+            JLabel label = new JLabel(item[0]);
+            label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            
+            JLabel value = new JLabel(item[1]);
+            value.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            
+            infoPanel.add(label);
+            infoPanel.add(value);
+        }
+
+        section.add(infoPanel, BorderLayout.CENTER);
+
+        return section;
+    }
+
+    private JPanel createStatsSection() {
+        JPanel section = new JPanel(new GridLayout(1, 3, 20, 0));
+        section.setMaximumSize(new Dimension(1076, 100));
+        section.setOpaque(false);
+
+        String[][] stats = {
+            {"Applied Scholarships", "5", "description"},
+            {"Pending Applications", "3", "pending"},
+            {"Approved Applications", "2", "check_circle"}
+        };
+
+        for (String[] stat : stats) {
+            JPanel card = createStatCard(stat[0], stat[1], stat[2]);
+            section.add(card);
+        }
+
+        return section;
+    }
+
+    private JPanel createStatCard(String title, String value, String icon) {
+        JPanel card = new JPanel();
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            new LineBorder(Color.LIGHT_GRAY, 1),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+        card.setLayout(new BorderLayout());
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        titleLabel.setForeground(Color.GRAY);
+
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+
+        card.add(titleLabel, BorderLayout.NORTH);
+        card.add(valueLabel, BorderLayout.CENTER);
+
+        return card;
     }
 }

@@ -4,17 +4,29 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class UserDAO {
     
+    private Connection conn;
+
+    public UserDAO() {
+        conn = DBConnection.getConnection();
+    }
+
     // Register a new user
     public boolean registerUser(User user) {
         String sql = "INSERT INTO users (first_name, middle_name, last_name, email, password, " +
                      "school, track_strand, gpa, monthly_income, college_course, student_id) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try {
+            PreparedStatement pstmt = conn.prepareStatement(sql);
             
             // Set values for prepared statement
             pstmt.setString(1, user.getFirstName());
@@ -44,8 +56,8 @@ public class UserDAO {
     public boolean emailExists(String email) {
         String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
         
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try {
+            PreparedStatement pstmt = conn.prepareStatement(sql);
             
             pstmt.setString(1, email);
             ResultSet rs = pstmt.executeQuery();
@@ -66,8 +78,8 @@ public class UserDAO {
     public User login(String email, String password) {
         String sql = "SELECT * FROM users WHERE email = ? AND password = ?";
         
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try {
+            PreparedStatement pstmt = conn.prepareStatement(sql);
             
             pstmt.setString(1, email);
             pstmt.setString(2, password); // In a real app, use password hashing
@@ -102,8 +114,8 @@ public class UserDAO {
     public User getUserByEmail(String email) {
         String sql = "SELECT * FROM users WHERE email = ?";
         
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try {
+            PreparedStatement pstmt = conn.prepareStatement(sql);
             
             pstmt.setString(1, email);
             ResultSet rs = pstmt.executeQuery();
@@ -131,5 +143,177 @@ public class UserDAO {
         }
         
         return null;
+    }
+
+    public boolean hasApplied(String email, String scholarshipTitle) {
+        String sql = "SELECT COUNT(*) FROM applications WHERE user_email = ? AND scholarship_title = ?";
+        try {
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, email);
+            stmt.setString(2, scholarshipTitle);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean applyForScholarship(String email, String scholarshipTitle) {
+        // First check if the application table exists, if not create it
+        createApplicationTableIfNotExists();
+
+        String sql = "INSERT INTO applications (user_email, scholarship_title, application_date, status) VALUES (?, ?, ?, ?)";
+        try {
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, email);
+            stmt.setString(2, scholarshipTitle);
+            stmt.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+            stmt.setString(4, "PENDING");
+            
+            int result = stmt.executeUpdate();
+            
+            if (result > 0) {
+                // Update the applicant count in scholarships table
+                updateScholarshipApplicantCount(scholarshipTitle);
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private void createApplicationTableIfNotExists() {
+        String sql = "CREATE TABLE IF NOT EXISTS applications (" +
+                    "id INT AUTO_INCREMENT PRIMARY KEY," +
+                    "user_email VARCHAR(255) NOT NULL," +
+                    "scholarship_title VARCHAR(255) NOT NULL," +
+                    "application_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+                    "status VARCHAR(50) NOT NULL," +
+                    "FOREIGN KEY (user_email) REFERENCES users(email)," +
+                    "FOREIGN KEY (scholarship_title) REFERENCES scholarships(title)" +
+                    ") ENGINE=InnoDB;";
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void updateScholarshipApplicantCount(String scholarshipTitle) {
+        String sql = "UPDATE scholarships SET applicant_count = applicant_count + 1 WHERE title = ?";
+        try {
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, scholarshipTitle);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public List<Map<String, Object>> getApplicationsForScholarship(String scholarshipTitle) {
+        List<Map<String, Object>> applications = new ArrayList<>();
+        String sql = "SELECT a.*, u.first_name, u.last_name, u.gpa " +
+                    "FROM applications a " +
+                    "JOIN users u ON a.user_email = u.email " +
+                    "WHERE a.scholarship_title = ? " +
+                    "ORDER BY a.application_date DESC";
+        
+        try {
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, scholarshipTitle);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                Map<String, Object> application = new HashMap<>();
+                application.put("email", rs.getString("user_email"));
+                application.put("firstName", rs.getString("first_name"));
+                application.put("lastName", rs.getString("last_name"));
+                application.put("gpa", rs.getDouble("gpa"));
+                application.put("status", rs.getString("status"));
+                application.put("applicationDate", rs.getTimestamp("application_date"));
+                applications.add(application);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return applications;
+    }
+
+    public int getApplicationCount(String scholarshipTitle) {
+        String sql = "SELECT COUNT(*) FROM applications WHERE scholarship_title = ?";
+        try {
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, scholarshipTitle);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public boolean updateApplicationStatus(String scholarship, String email, String status) {
+        String sql = "UPDATE applications SET status = ? WHERE scholarship_title = ? AND user_email = ?";
+        try {
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, status);
+            stmt.setString(2, scholarship);
+            stmt.setString(3, email);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public int getTotalApplicationCount() {
+        String sql = "SELECT COUNT(*) FROM applications";
+        try {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int getApplicationCountByStatus(String status) {
+        String sql = "SELECT COUNT(*) FROM applications WHERE status = ?";
+        try {
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, status);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public List<String> getAllScholarshipTitles() {
+        List<String> titles = new ArrayList<>();
+        String sql = "SELECT title FROM scholarships";
+        try {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            while (rs.next()) {
+                titles.add(rs.getString("title"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return titles;
     }
 }

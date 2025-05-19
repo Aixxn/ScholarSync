@@ -2,266 +2,477 @@ package scholar;
 
 import java.awt.*;
 import java.awt.event.*;
-import javax.swing.border.LineBorder;
+import javax.swing.border.*;
 import javax.swing.*;
 import java.util.HashSet;
 import java.util.Set;
+import java.sql.*;
 
 public class MyFrame extends JFrame implements ActionListener {
 
-    JButton loginButton;
-    JButton registerButton;
-    User currentUser;
+    private JButton loginButton;
+    private JButton registerButton;
+    private User currentUser;
+    private UserDAO userDAO;
+    // Updated color scheme for a cleaner look
+    private Color primaryColor = new Color(52, 152, 219);    // Soft blue
+    private Color secondaryColor = new Color(41, 128, 185);  // Darker blue
+    private Color backgroundColor = new Color(245, 247, 250); // Light gray-blue
+    private Color textColor = new Color(44, 62, 80);         // Dark blue-gray
+    private Color cardColor = Color.WHITE;
 
     public MyFrame(User user) {
         this.currentUser = user;
+        this.userDAO = new UserDAO();
 
         this.setTitle("ScholarSync");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setSize(1920, 1080);
+        this.setSize(1366, 768);
         this.setLocationRelativeTo(null);
-        this.setLayout(null);
+        this.setLayout(new BorderLayout());
+        this.setBackground(backgroundColor);
 
-        // Background Panel
-        JPanel background = new JPanel();
-        background.setBackground(new Color(0xF8FAFD));
-        background.setBounds(0, 0, 1920, 1080);
-        background.setLayout(null);
-        this.add(background);
-
-        // Drop Shadow Panel
-        JPanel shadow = new JPanel();
-        shadow.setBackground(new Color(0, 0, 0, 30));
-        shadow.setBounds(300, 0, 1, 1080);
-        background.add(shadow);
-
-        // Navigator Panel
-        JPanel navigator = new JPanel();
-        navigator.setBackground(Color.WHITE);
-        navigator.setBounds(300, 0, 1620, 150);
-        navigator.setLayout(null);
-        background.add(navigator);
+        // Main Container
+        JPanel mainContainer = new JPanel(new BorderLayout(0, 0));
+        mainContainer.setBackground(backgroundColor);
 
         // Sidebar
-        JPanel sidebar = new JPanel();
-        sidebar.setBackground(Color.WHITE);
-        sidebar.setBounds(0, 0, 300, 1080);
-        sidebar.setLayout(null);
-        background.add(sidebar);
+        JPanel sidebar = createSidebar();
+        mainContainer.add(sidebar, BorderLayout.WEST);
 
-        // Sidebar Title
-        JLabel titlecard = new JLabel("<html><font color='#0000FF'>Scholar</font>Sync</html>");
-        titlecard.setFont(new Font("Konkhmer Sleokchher", Font.PLAIN, 25));
-        titlecard.setBounds(15, 30, 260, 40);
-        sidebar.add(titlecard);
+        // Content Area
+        JPanel contentArea = createContentArea();
+        mainContainer.add(contentArea, BorderLayout.CENTER);
+
+        this.add(mainContainer);
+        this.setVisible(true);
+    }
+
+    private JPanel createSidebar() {
+        JPanel sidebar = new JPanel();
+        sidebar.setPreferredSize(new Dimension(280, 768));
+        sidebar.setBackground(primaryColor);
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setBorder(BorderFactory.createEmptyBorder(30, 25, 30, 25));
+
+        // Logo Panel
+        JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        logoPanel.setOpaque(false);
+        logoPanel.setMaximumSize(new Dimension(280, 50));
+        
+        JLabel logoLabel = new JLabel("ScholarSync");
+        logoLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        logoLabel.setForeground(Color.WHITE);
+        logoPanel.add(logoLabel);
+
+        sidebar.add(logoPanel);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 40)));
 
         if (currentUser != null) {
-            JLabel welcomeLabel = new JLabel("Welcome, " + currentUser.getFirstName() + "!");
-            welcomeLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-            welcomeLabel.setBounds(15, 90, 250, 30);
-            sidebar.add(welcomeLabel);
+            // User Info Panel
+            JPanel userPanel = new JPanel();
+            userPanel.setOpaque(false);
+            userPanel.setLayout(new BoxLayout(userPanel, BoxLayout.Y_AXIS));
+            userPanel.setMaximumSize(new Dimension(280, 100));
+            userPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            JButton dashboardButton = new JButton("Go to Dashboard");
-            dashboardButton.setBounds(15, 130, 250, 30);
-            dashboardButton.setFocusable(false);
-            dashboardButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    dispose();
-                    new dashboard(currentUser);
-                }
-            });
-            sidebar.add(dashboardButton);
+            JLabel welcomeLabel = new JLabel("Welcome back,");
+            welcomeLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            welcomeLabel.setForeground(new Color(255, 255, 255, 200));
+            welcomeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            
+            JLabel nameLabel = new JLabel(currentUser.getFirstName() + " " + currentUser.getLastName());
+            nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+            nameLabel.setForeground(Color.WHITE);
+            nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            JButton logoutButton = new JButton("Logout");
-            logoutButton.setBounds(15, 400, 250, 30);
-            logoutButton.setFocusable(false);
-            logoutButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    dispose();
-                    new login();
-                }
-            });
-            sidebar.add(logoutButton);
+            userPanel.add(welcomeLabel);
+            userPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+            userPanel.add(nameLabel);
+            sidebar.add(userPanel);
+            sidebar.add(Box.createRigidArea(new Dimension(0, 40)));
 
+            // Navigation Menu
+            String[] navItems = {"Dashboard", "My Applications", "Profile", "Settings", "Logout"};
+            for (String item : navItems) {
+                JButton navButton = createNavButton(item);
+                sidebar.add(navButton);
+                sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+            }
         } else {
-            loginButton = new JButton("Login");
-            loginButton.setBounds(15, 90, 100, 30);
-            loginButton.setFocusable(false);
-            loginButton.addActionListener(this);
-            sidebar.add(loginButton);
+            // Auth Buttons Panel
+            JPanel authPanel = new JPanel();
+            authPanel.setOpaque(false);
+            authPanel.setLayout(new BoxLayout(authPanel, BoxLayout.Y_AXIS));
+            authPanel.setMaximumSize(new Dimension(280, 120));
+            authPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            registerButton = new JButton("Register");
-            registerButton.setBounds(150, 90, 100, 30);
-            registerButton.setFocusable(false);
-            registerButton.addActionListener(this);
-            sidebar.add(registerButton);
+            loginButton = createAuthButton("Login");
+            registerButton = createAuthButton("Create Account");
+
+            authPanel.add(loginButton);
+            authPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+            authPanel.add(registerButton);
+
+            sidebar.add(authPanel);
         }
 
-        JLabel scholarNav = new JLabel("Scholarships");
-        scholarNav.setFont(new Font("Konkhmer Sleokchher", Font.PLAIN, 35));
-        scholarNav.setBounds(30, 25, 260, 40);
-        navigator.add(scholarNav);
+        return sidebar;
+    }
 
-        JPanel searchContainer = new JPanel();
-        searchContainer.setBounds(500, 30, 600, 40);
-        searchContainer.setBackground(Color.WHITE);
-        searchContainer.setLayout(null);
-        searchContainer.setBorder(new LineBorder(Color.BLACK, 1, true));
+    private JButton createNavButton(String text) {
+        JButton button = new JButton(text);
+        button.setMaximumSize(new Dimension(280, 45));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        button.setForeground(Color.WHITE);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.setFocusPainted(false);
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        JTextField searchField = new JTextField("Search...");
-        searchField.setBounds(15, 5, 530, 30);
-        searchField.setForeground(Color.GRAY);
-        searchField.setBorder(null);
-        searchField.setBackground(Color.WHITE);
-        searchField.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        // Add an icon indicator
+        button.setLayout(new BorderLayout());
+        JLabel iconLabel = new JLabel("›");
+        iconLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        iconLabel.setForeground(Color.WHITE);
+        button.add(iconLabel, BorderLayout.EAST);
 
-        ImageIcon searchIcon = new ImageIcon("images/search.png");
-        Image img = searchIcon.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
-        searchIcon = new ImageIcon(img);
+        button.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(secondaryColor);
+                button.setContentAreaFilled(true);
+            }
+            public void mouseExited(MouseEvent e) {
+                button.setContentAreaFilled(false);
+            }
+        });
 
-        JLabel searchIconLabel = new JLabel(searchIcon);
-        searchIconLabel.setBounds(565, 10, 20, 20);
+        button.addActionListener(e -> {
+            switch (text) {
+                case "Dashboard":
+                    dispose();
+                    new dashboard(currentUser);
+                    break;
+                case "Logout":
+                    dispose();
+                    new login();
+                    break;
+            }
+        });
 
-        searchContainer.add(searchField);
-        searchContainer.add(searchIconLabel);
-        navigator.add(searchContainer);
+        return button;
+    }
 
-        Scholarship gsisScholarship = new Scholarship("GSIS Scholarship Program 2025", "April 13, 2025", "August 30, 2025");
+    private JButton createAuthButton(String text) {
+        JButton button = new JButton(text);
+        button.setMaximumSize(new Dimension(280, 50));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.addActionListener(this);
 
-        // Scholarship Card
-        JPanel scholarshipCard = new JPanel();
-        scholarshipCard.setLayout(null);
-        scholarshipCard.setBounds(350, 180, 1200, 120);
-        scholarshipCard.setBackground(Color.WHITE);
-        scholarshipCard.setBorder(new LineBorder(new Color(220, 220, 220), 1, true));
-        background.add(scholarshipCard);
+        if (text.equals("Login")) {
+            button.setForeground(Color.WHITE);
+            button.setBackground(secondaryColor);
+            button.setBorderPainted(false);
+        } else {
+            button.setForeground(Color.WHITE);
+            button.setBackground(null);
+            button.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
+            button.setContentAreaFilled(false);
+        }
 
-        JLabel title = new JLabel("<html><i>" + gsisScholarship.getTitle() + "</i></html>");
-        title.setFont(new Font("SansSerif", Font.ITALIC, 18));
-        title.setBounds(20, 10, 400, 25);
-        scholarshipCard.add(title);
+        // Add hover effect
+        button.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                if (text.equals("Login")) {
+                    button.setBackground(new Color(52, 152, 219));
+                } else {
+                    button.setBackground(new Color(255, 255, 255, 30));
+                }
+            }
+            public void mouseExited(MouseEvent e) {
+                if (text.equals("Login")) {
+                    button.setBackground(secondaryColor);
+                } else {
+                    button.setBackground(null);
+                }
+            }
+        });
 
-        JLabel startDateLabel = new JLabel("Start: " + gsisScholarship.getStartDate());
-        startDateLabel.setOpaque(true);
-        startDateLabel.setBackground(new Color(46, 92, 138));
-        startDateLabel.setForeground(new Color(242, 247, 252));
-        startDateLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        startDateLabel.setBounds(20, 45, 120, 30);
-        scholarshipCard.add(startDateLabel);
+        return button;
+    }
 
-        JLabel dueDateLabel = new JLabel("Due: " + gsisScholarship.getEndDate());
-        dueDateLabel.setOpaque(true);
-        dueDateLabel.setBackground(new Color(91, 143, 189));
-        dueDateLabel.setForeground(new Color(242, 247, 252));
-        dueDateLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        dueDateLabel.setBounds(150, 45, 120, 30);
-        scholarshipCard.add(dueDateLabel);
+    private JPanel createContentArea() {
+        JPanel contentArea = new JPanel(new BorderLayout(0, 0));
+        contentArea.setBackground(backgroundColor);
+        contentArea.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-        JLabel applicantsLabel = new JLabel("Applicants");
-        applicantsLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        applicantsLabel.setBounds(450, 20, 100, 20);
-        scholarshipCard.add(applicantsLabel);
+        // Header
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(backgroundColor);
+        header.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
 
-        JLabel applicantsCount = new JLabel("0");
-        applicantsCount.setFont(new Font("SansSerif", Font.PLAIN, 22));
-        applicantsCount.setBounds(470, 45, 100, 30);
-        scholarshipCard.add(applicantsCount);
+        JLabel titleLabel = new JLabel("Available Scholarships");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        titleLabel.setForeground(textColor);
+        header.add(titleLabel, BorderLayout.WEST);
 
-        JLabel acceptedLabel = new JLabel("Accepted");
-        acceptedLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        acceptedLabel.setBounds(580, 20, 100, 20);
-        scholarshipCard.add(acceptedLabel);
+        // Search Bar
+        JTextField searchField = new JTextField();
+        searchField.setPreferredSize(new Dimension(300, 40));
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+            new LineBorder(new Color(200, 200, 200)),
+            BorderFactory.createEmptyBorder(5, 15, 5, 15)
+        ));
+        header.add(searchField, BorderLayout.EAST);
 
-        JLabel acceptedCount = new JLabel(gsisScholarship.getAcceptedCount() + "/5");
-        acceptedCount.setFont(new Font("SansSerif", Font.PLAIN, 22));
-        acceptedCount.setBounds(600, 45, 100, 30);
-        scholarshipCard.add(acceptedCount);
+        contentArea.add(header, BorderLayout.NORTH);
 
-        JLabel statusDot = new JLabel("\u25CF");
-        statusDot.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        statusDot.setForeground(new Color(0, 0, 255));
-        statusDot.setBounds(20, 90, 20, 20);
-        scholarshipCard.add(statusDot);
+        // Scholarships Panel
+        JPanel scholarshipsPanel = new JPanel();
+        scholarshipsPanel.setBackground(backgroundColor);
+        scholarshipsPanel.setLayout(new BoxLayout(scholarshipsPanel, BoxLayout.Y_AXIS));
 
-        JLabel statusLabel = new JLabel("Ongoing");
-        statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        statusLabel.setBounds(35, 90, 100, 20);
-        scholarshipCard.add(statusLabel);
+        // Add scholarship cards
+        addScholarshipCards(scholarshipsPanel);
+
+        JScrollPane scrollPane = new JScrollPane(scholarshipsPanel);
+        scrollPane.setBorder(null);
+        scrollPane.setBackground(backgroundColor);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        contentArea.add(scrollPane, BorderLayout.CENTER);
+
+        return contentArea;
+    }
+
+    private void addScholarshipCards(JPanel container) {
+        // Clear existing components
+        container.removeAll();
+        
+        // Get scholarship data from database
+        String sql = "SELECT title, start_date, end_date, applicant_count, max_slots FROM scholarships";
+        try {
+            Connection conn = DBConnection.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                String[] scholarship = {
+                    rs.getString("title"),
+                    rs.getDate("start_date").toString(),
+                    rs.getDate("end_date").toString(),
+                    String.valueOf(rs.getInt("applicant_count")),
+                    String.valueOf(rs.getInt("max_slots"))
+                };
+                JPanel card = createScholarshipCard(scholarship);
+                container.add(card);
+                container.add(Box.createRigidArea(new Dimension(0, 20)));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        // Refresh the container
+        container.revalidate();
+        container.repaint();
+    }
+
+    private void refreshScholarshipCards() {
+        // Find the container panel
+        Component[] components = this.getContentPane().getComponents();
+        for (Component comp : components) {
+            if (comp instanceof JPanel) {
+                Component[] subComps = ((JPanel) comp).getComponents();
+                for (Component subComp : subComps) {
+                    if (subComp instanceof JPanel) {
+                        Component[] furtherComps = ((JPanel) subComp).getComponents();
+                        for (Component furtherComp : furtherComps) {
+                            if (furtherComp instanceof JScrollPane) {
+                                JScrollPane scrollPane = (JScrollPane) furtherComp;
+                                JViewport viewport = scrollPane.getViewport();
+                                if (viewport.getView() instanceof JPanel) {
+                                    JPanel container = (JPanel) viewport.getView();
+                                    addScholarshipCards(container);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private JPanel createScholarshipCard(String[] data) {
+        JPanel card = new JPanel();
+        card.setLayout(new BorderLayout(20, 0));
+        card.setMaximumSize(new Dimension(1100, 140));
+        card.setBackground(cardColor);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            new LineBorder(new Color(230, 230, 230)),
+            BorderFactory.createEmptyBorder(25, 30, 25, 30)
+        ));
+
+        // Make the entire card clickable
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        // Left Content
+        JPanel leftContent = new JPanel();
+        leftContent.setLayout(new BoxLayout(leftContent, BoxLayout.Y_AXIS));
+        leftContent.setOpaque(false);
+
+        JLabel titleLabel = new JLabel(data[0]);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        titleLabel.setForeground(textColor);
+
+        JPanel datesPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 30, 0));
+        datesPanel.setOpaque(false);
+
+        JLabel startDate = new JLabel("Start: " + data[1]);
+        JLabel endDate = new JLabel("End: " + data[2]);
+        startDate.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        endDate.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        startDate.setForeground(new Color(100, 100, 100));
+        endDate.setForeground(new Color(100, 100, 100));
+
+        datesPanel.add(startDate);
+        datesPanel.add(endDate);
+
+        leftContent.add(titleLabel);
+        leftContent.add(Box.createRigidArea(new Dimension(0, 15)));
+        leftContent.add(datesPanel);
+
+        // Right Content
+        JPanel rightContent = new JPanel(new BorderLayout(0, 15));
+        rightContent.setOpaque(false);
+
+        JPanel statsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 30, 0));
+        statsPanel.setOpaque(false);
+
+        String applicants = data[3];
+        String maxSlots = data[4];
+        JLabel applicantsLabel = new JLabel(applicants + " Applicants");
+        JLabel slotsLabel = new JLabel("0/" + maxSlots + " Slots");  // Always show accepted/max slots
+        applicantsLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        slotsLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        applicantsLabel.setForeground(textColor);
+        slotsLabel.setForeground(textColor);
+
+        statsPanel.add(applicantsLabel);
+        statsPanel.add(slotsLabel);
 
         JButton applyButton = new JButton("Apply Now");
-        applyButton.setBounds(1050, 40, 120, 25);
-        applyButton.setFocusable(false);
-        applyButton.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        scholarshipCard.add(applyButton);
+        applyButton.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        applyButton.setForeground(Color.WHITE);
+        applyButton.setBackground(primaryColor);
+        applyButton.setBorderPainted(false);
+        applyButton.setFocusPainted(false);
+        applyButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        applyButton.setPreferredSize(new Dimension(140, 40));
 
-        ImageIcon notInterestedIcon = new ImageIcon("images/flag.png");
-        Image flagImg = notInterestedIcon.getImage().getScaledInstance(15, 15, Image.SCALE_SMOOTH);
-        notInterestedIcon = new ImageIcon(flagImg);
-        JLabel notInterestedLabel = new JLabel("Not Interested", notInterestedIcon, JLabel.RIGHT);
-        notInterestedLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        notInterestedLabel.setForeground(Color.GRAY);
-        notInterestedLabel.setBounds(1050, 90, 120, 20);
-        scholarshipCard.add(notInterestedLabel);
-
-        // Apply Logic
-        applyButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                if (currentUser == null) {
-                    JOptionPane.showMessageDialog(null, "Please log in to apply.");
-                    return;
-                }
-
-                if (currentUser.hasApplied(gsisScholarship.getTitle())) {
-                    JOptionPane.showMessageDialog(null, "You have already applied for this scholarship.");
-                } else if (!gsisScholarship.isFull()) {
-                    currentUser.apply(gsisScholarship.getTitle());
-                    gsisScholarship.incrementApplicants(); // <-- Add this line
-                    applicantsCount.setText(String.valueOf(gsisScholarship.getApplicantCount())); // <-- Update UI
-                    JOptionPane.showMessageDialog(null, "Application successful!");
-                } else {
-                    JOptionPane.showMessageDialog(null, "This scholarship has reached its limit.");
-                }
+        // Add hover effect to apply button
+        applyButton.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                applyButton.setBackground(secondaryColor);
+                card.setBorder(BorderFactory.createCompoundBorder(
+                    new LineBorder(primaryColor),
+                    BorderFactory.createEmptyBorder(25, 30, 25, 30)
+                ));
+            }
+            public void mouseExited(MouseEvent e) {
+                applyButton.setBackground(primaryColor);
+                card.setBorder(BorderFactory.createCompoundBorder(
+                    new LineBorder(new Color(230, 230, 230)),
+                    BorderFactory.createEmptyBorder(25, 30, 25, 30)
+                ));
             }
         });
 
-        // Search Placeholder Logic
-        searchField.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (searchField.getText().equals("Search...")) {
-                    searchField.setText("");
-                    searchField.setForeground(Color.BLACK);
-                }
-            }
+        // Add click handler for the apply button
+        applyButton.addActionListener(e -> handleScholarshipApplication(data[0], applicantsLabel, slotsLabel));
 
+        rightContent.add(statsPanel, BorderLayout.NORTH);
+        rightContent.add(applyButton, BorderLayout.SOUTH);
+
+        card.add(leftContent, BorderLayout.WEST);
+        card.add(rightContent, BorderLayout.EAST);
+
+        // Add click handler for the entire card
+        card.addMouseListener(new MouseAdapter() {
             @Override
-            public void focusLost(FocusEvent e) {
-                if (searchField.getText().isEmpty()) {
-                    searchField.setText("Search...");
-                    searchField.setForeground(Color.GRAY);
-                }
+            public void mouseClicked(MouseEvent e) {
+                handleScholarshipApplication(data[0], applicantsLabel, slotsLabel);
+            }
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                card.setBorder(BorderFactory.createCompoundBorder(
+                    new LineBorder(primaryColor),
+                    BorderFactory.createEmptyBorder(25, 30, 25, 30)
+                ));
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                card.setBorder(BorderFactory.createCompoundBorder(
+                    new LineBorder(new Color(230, 230, 230)),
+                    BorderFactory.createEmptyBorder(25, 30, 25, 30)
+                ));
             }
         });
 
-        MouseAdapter clickOutsideListener = new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                if (!searchField.getBounds().contains(
-                        SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), searchField.getParent()))) {
-                    if (searchField.getText().isEmpty()) {
-                        searchField.setText("Search...");
-                        searchField.setForeground(Color.GRAY);
-                    }
-                    background.requestFocusInWindow();
-                }
+        return card;
+    }
+
+    private void handleScholarshipApplication(String scholarshipTitle, JLabel applicantsLabel, JLabel slotsLabel) {
+        if (currentUser == null) {
+            JOptionPane.showMessageDialog(this,
+                "Please login to apply for scholarships.",
+                "Login Required",
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Check if user has already applied
+        if (userDAO.hasApplied(currentUser.getEmail(), scholarshipTitle)) {
+            JOptionPane.showMessageDialog(this,
+                "You have already applied for this scholarship.",
+                "Already Applied",
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Show confirmation dialog
+        int choice = JOptionPane.showConfirmDialog(this,
+            "Would you like to apply for " + scholarshipTitle + "?",
+            "Confirm Application",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE);
+
+        if (choice == JOptionPane.YES_OPTION) {
+            // Update the database
+            if (userDAO.applyForScholarship(currentUser.getEmail(), scholarshipTitle)) {
+                // Update only the applicants count in UI
+                String currentApplicants = applicantsLabel.getText().split(" ")[0];
+                int newCount = Integer.parseInt(currentApplicants) + 1;
+                applicantsLabel.setText(newCount + " Applicants");
+
+                // Also refresh the cards to ensure database sync
+                refreshScholarshipCards();
+
+                JOptionPane.showMessageDialog(this,
+                    "Successfully applied for " + scholarshipTitle + "!\nGood luck!",
+                    "Application Submitted",
+                    JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Failed to submit application. Please try again.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
             }
-        };
-
-        background.addMouseListener(clickOutsideListener);
-        navigator.addMouseListener(clickOutsideListener);
-        sidebar.addMouseListener(clickOutsideListener);
-
-        this.setVisible(true);
+        }
     }
 
     @Override

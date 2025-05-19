@@ -3,9 +3,15 @@ package scholar;
 import java.util.ArrayList;
 
 public class Main {
+    private static final String ADMIN_USERNAME = "admin";
+    private static final String ADMIN_PASSWORD = "admin123";
 
     public static void main(String[] args) {
         new MyFrame(null); // Launch app
+    }
+
+    public static boolean isAdmin(String username, String password) {
+        return username.equals(ADMIN_USERNAME) && password.equals(ADMIN_PASSWORD);
     }
 
     public static ArrayList<Scholarship> mergeSort(ArrayList<Scholarship> list) {

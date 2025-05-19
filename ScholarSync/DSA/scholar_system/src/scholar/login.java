@@ -3,203 +3,203 @@ package scholar;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-import javax.swing.border.LineBorder;
+import javax.swing.border.*;
 
 public class login extends JFrame {
     private JTextField userField;
     private JPasswordField passwordField;
     private UserDAO userDAO;
+    private Color primaryColor = new Color(25, 118, 210);
+    private Color secondaryColor = new Color(66, 165, 245);
+    private Color backgroundColor = new Color(248, 250, 253);
 
     public login() {
         userDAO = new UserDAO();
 
-        this.setTitle("ScholarSync Login");
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setSize(1920, 1080);
-        this.setLocationRelativeTo(null);
-        this.setLayout(null);
+        setTitle("ScholarSync Login");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1366, 768);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout());
 
-        // Background Panel
-        JPanel background = new JPanel();
-        Color customColor = new Color(0xF8FAFD);
-        background.setBackground(customColor);
-        background.setBounds(0, 0, 1920, 1080);
-        background.setLayout(null);
-        this.add(background);
+        // Main Container
+        JPanel mainContainer = new JPanel(new BorderLayout());
+        mainContainer.setBackground(backgroundColor);
 
-        // Login Panel (Centered)
-        JPanel loginPanel = new JPanel();
-        loginPanel.setLayout(null);
-        loginPanel.setBounds((1920 - 600) / 2, (1080 - 400) / 2, 600, 400); // Made taller for error message
-        loginPanel.setBackground(Color.WHITE);
-        loginPanel.setBorder(new LineBorder(Color.BLACK, 1, true));
-        background.add(loginPanel);
+        // Left Panel (Logo and Welcome Message)
+        JPanel leftPanel = createLeftPanel();
+        mainContainer.add(leftPanel, BorderLayout.WEST);
 
-        // Login Label
-        JLabel loginLabel = new JLabel("<html>Welcome to <font color='#0000FF'>Scholar</font>Sync!</html>", SwingConstants.CENTER);
-        loginLabel.setFont(new Font("Konkhmer Sleokchher", Font.PLAIN, 24));
-        loginLabel.setBounds(0, 20, 600, 40); // full width of the panel
-        loginPanel.add(loginLabel);
+        // Right Panel (Login Form)
+        JPanel rightPanel = createRightPanel();
+        mainContainer.add(rightPanel, BorderLayout.CENTER);
 
-        // Username Container
-        JPanel userContainer = new JPanel();
-        userContainer.setBounds(100, 80, 400, 40);
-        userContainer.setBackground(Color.WHITE);
-        userContainer.setLayout(null);
-        userContainer.setBorder(new LineBorder(Color.BLACK, 1, true));
-        loginPanel.add(userContainer);
+        add(mainContainer);
+        setVisible(true);
+    }
 
-        userField = new JTextField("Email");
-        userField.setBounds(15, 5, 370, 30);
-        userField.setForeground(Color.GRAY);
-        userField.setBorder(null);
-        userField.setBackground(Color.WHITE);
-        userField.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        userContainer.add(userField);
+    private JPanel createLeftPanel() {
+        JPanel leftPanel = new JPanel();
+        leftPanel.setPreferredSize(new Dimension(683, 768));
+        leftPanel.setBackground(primaryColor);
+        leftPanel.setLayout(new GridBagLayout());
 
-        // Password Container
-        JPanel passwordContainer = new JPanel();
-        passwordContainer.setBounds(100, 140, 400, 40);
-        passwordContainer.setBackground(Color.WHITE);
-        passwordContainer.setLayout(null);
-        passwordContainer.setBorder(new LineBorder(Color.BLACK, 1, true));
-        loginPanel.add(passwordContainer);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.insets = new Insets(10, 0, 10, 0);
 
-        passwordField = new JPasswordField("Password");
-        passwordField.setBounds(15, 5, 370, 30);
-        passwordField.setForeground(Color.GRAY);
-        passwordField.setBorder(null);
-        passwordField.setBackground(Color.WHITE);
-        passwordField.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        passwordField.setEchoChar((char) 0); // No masking when placeholder
-        passwordContainer.add(passwordField);
+        // Logo
+        JLabel logoLabel = new JLabel("ScholarSync");
+        logoLabel.setFont(new Font("Segoe UI", Font.BOLD, 48));
+        logoLabel.setForeground(Color.WHITE);
+        leftPanel.add(logoLabel, gbc);
+
+        // Welcome Message
+        JLabel welcomeMsg = new JLabel("Welcome back!");
+        welcomeMsg.setFont(new Font("Segoe UI", Font.PLAIN, 24));
+        welcomeMsg.setForeground(Color.WHITE);
+        leftPanel.add(welcomeMsg, gbc);
+
+        return leftPanel;
+    }
+
+    private JPanel createRightPanel() {
+        JPanel rightPanel = new JPanel();
+        rightPanel.setBackground(Color.WHITE);
+        rightPanel.setLayout(new GridBagLayout());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(10, 0, 10, 0);
+
+        // Login Form Container
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setBackground(Color.WHITE);
+        formPanel.setBorder(BorderFactory.createEmptyBorder(0, 50, 0, 50));
+        formPanel.setPreferredSize(new Dimension(400, 400));
+
+        // Login Header
+        JLabel loginHeader = new JLabel("Log in");
+        loginHeader.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        loginHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
+        formPanel.add(loginHeader);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+
+        // Email Field
+        JLabel emailLabel = new JLabel("Email");
+        emailLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        emailLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        formPanel.add(emailLabel);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+
+        userField = new JTextField();
+        userField.setMaximumSize(new Dimension(400, 40));
+        userField.setPreferredSize(new Dimension(400, 40));
+        userField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        userField.setBorder(BorderFactory.createCompoundBorder(
+            new LineBorder(Color.LIGHT_GRAY),
+            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        formPanel.add(userField);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // Password Field
+        JLabel passwordLabel = new JLabel("Password");
+        passwordLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        passwordLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        formPanel.add(passwordLabel);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+
+        passwordField = new JPasswordField();
+        passwordField.setMaximumSize(new Dimension(400, 40));
+        passwordField.setPreferredSize(new Dimension(400, 40));
+        passwordField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        passwordField.setBorder(BorderFactory.createCompoundBorder(
+            new LineBorder(Color.LIGHT_GRAY),
+            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        formPanel.add(passwordField);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
         // Login Button
         JButton loginButton = new JButton("Login");
-        loginButton.setBounds(200, 230, 200, 35);
-        loginPanel.add(loginButton);
+        loginButton.setMaximumSize(new Dimension(400, 40));
+        loginButton.setPreferredSize(new Dimension(400, 40));
+        loginButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        loginButton.setForeground(Color.WHITE);
+        loginButton.setBackground(primaryColor);
+        loginButton.setBorderPainted(false);
+        loginButton.setFocusPainted(false);
+        loginButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        formPanel.add(loginButton);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
         // Register Link
-        JLabel registerLabel = new JLabel("Don't have an account? Register here", SwingConstants.CENTER);
-        registerLabel.setForeground(Color.BLUE);
-        registerLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        registerLabel.setBounds(150, 280, 300, 30);
-        loginPanel.add(registerLabel);
+        JPanel registerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        registerPanel.setBackground(Color.WHITE);
+        registerPanel.setMaximumSize(new Dimension(400, 30));
+        
+        JLabel registerText = new JLabel("Don't have an account? ");
+        registerText.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        
+        JLabel registerLink = new JLabel("Register here");
+        registerLink.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        registerLink.setForeground(primaryColor);
+        registerLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        registerPanel.add(registerText);
+        registerPanel.add(registerLink);
+        formPanel.add(registerPanel);
 
-        // Error Message Label (initially hidden)
-        JLabel errorLabel = new JLabel("", SwingConstants.CENTER);
+        // Error Label
+        JLabel errorLabel = new JLabel("");
+        errorLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         errorLabel.setForeground(Color.RED);
-        errorLabel.setBounds(100, 320, 400, 30);
-        errorLabel.setVisible(false);
-        loginPanel.add(errorLabel);
+        errorLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        formPanel.add(errorLabel);
 
-        // Placeholder Logic - Username
-        userField.addFocusListener(new FocusListener() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (userField.getText().equals("Email")) {
-                    userField.setText("");
-                    userField.setForeground(Color.BLACK);
-                }
-                errorLabel.setVisible(false);
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (userField.getText().isEmpty()) {
-                    userField.setText("Email");
-                    userField.setForeground(Color.GRAY);
-                }
-            }
-        });
-
-        // Placeholder Logic - Password
-        passwordField.addFocusListener(new FocusListener() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (String.valueOf(passwordField.getPassword()).equals("Password")) {
-                    passwordField.setText("");
-                    passwordField.setForeground(Color.BLACK);
-                    passwordField.setEchoChar('\u2022'); // Bullet char
-                }
-                errorLabel.setVisible(false);
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (String.valueOf(passwordField.getPassword()).isEmpty()) {
-                    passwordField.setText("Password");
-                    passwordField.setForeground(Color.GRAY);
-                    passwordField.setEchoChar((char) 0); // Show placeholder text
-                }
-            }
-        });
-
-        // Click outside text fields resets placeholders
-        background.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                // Username reset
-                if (!userField.hasFocus() && userField.getText().isEmpty()) {
-                    userField.setText("Email");
-                    userField.setForeground(Color.GRAY);
-                }
-
-                // Password reset
-                if (!passwordField.hasFocus() && String.valueOf(passwordField.getPassword()).isEmpty()) {
-                    passwordField.setText("Password");
-                    passwordField.setForeground(Color.GRAY);
-                    passwordField.setEchoChar((char) 0);
-                }
-
-                background.requestFocusInWindow(); // remove focus from textfields
-            }
-        });
+        rightPanel.add(formPanel, gbc);
 
         // Login Button Action
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String email = userField.getText();
-                String password = new String(passwordField.getPassword());
+        loginButton.addActionListener(e -> {
+            String email = userField.getText();
+            String password = new String(passwordField.getPassword());
 
-                // Check for placeholders
-                if (email.equals("Email") || password.equals("Password")) {
-                    errorLabel.setText("Please enter your email and password");
-                    errorLabel.setVisible(true);
-                    return;
-                }
+            if (email.isEmpty() || password.isEmpty()) {
+                errorLabel.setText("Please enter your email and password");
+                return;
+            }
 
-                // Attempt login
-                User user = userDAO.login(email, password);
+            // Check for admin login
+            if (Main.isAdmin(email, password)) {
+                dispose();
+                new AdminDashboard();
+                return;
+            }
 
-                if (user != null) {
-                    // Login successful - close login form and open main application
-                    JOptionPane.showMessageDialog(login.this,
-                            "Welcome, " + user.getFirstName() + "!",
-                            "Login Successful",
-                            JOptionPane.INFORMATION_MESSAGE);
-                    login.this.dispose();
+            // Regular user login
+            User user = userDAO.login(email, password);
 
-                    // Pass the authenticated user to MyFrame
-                    new MyFrame(user); // Open main application window with user data
-                } else {
-                    // Login failed
-                    errorLabel.setText("Invalid email or password");
-                    errorLabel.setVisible(true);
-                }
+            if (user != null) {
+                dispose();
+                new MyFrame(user);
+            } else {
+                errorLabel.setText("Invalid email or password");
             }
         });
 
-        // Register Label Click Action
-        registerLabel.addMouseListener(new MouseAdapter() {
+        // Register Link Action
+        registerLink.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                login.this.dispose();
+                dispose();
                 new register();
             }
         });
 
-        this.setVisible(true);
+        return rightPanel;
     }
 }
