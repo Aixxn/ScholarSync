@@ -18,6 +18,7 @@ public class AdminDashboard extends JFrame {
     private Color backgroundColor = new Color(245, 247, 250);
     private JPanel applicationsPanel;
     private Timer refreshTimer;
+    private JPanel statsPanel;
 
     public AdminDashboard() {
         userDAO = new UserDAO();
@@ -71,19 +72,28 @@ public class AdminDashboard extends JFrame {
         mainContent.setBackground(backgroundColor);
         mainContent.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-        // Statistics Panel
-        JPanel statsPanel = createStatsPanel();
+        // Create statsPanel as a class field so we can update it
+        statsPanel = new JPanel(new GridLayout(1, 4, 20, 0));
+        statsPanel.setBackground(backgroundColor);
+        updateStatsPanel(); // Initial update
         mainContent.add(statsPanel, BorderLayout.NORTH);
 
-        // Applications Panel
+        // Applications Panel with horizontal scrolling
         applicationsPanel = new JPanel();
         applicationsPanel.setLayout(new BoxLayout(applicationsPanel, BoxLayout.Y_AXIS));
         applicationsPanel.setBackground(backgroundColor);
 
-        // Wrap in scroll pane
-        JScrollPane scrollPane = new JScrollPane(applicationsPanel);
+        // Create a container panel for horizontal scrolling
+        JPanel scrollContainer = new JPanel(new BorderLayout());
+        scrollContainer.setBackground(backgroundColor);
+        scrollContainer.add(applicationsPanel, BorderLayout.CENTER);
+
+        // Wrap in scroll pane with horizontal scrollbar
+        JScrollPane scrollPane = new JScrollPane(scrollContainer);
         scrollPane.setBorder(null);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+        scrollPane.getHorizontalScrollBar().setUnitIncrement(16);
         
         mainContent.add(scrollPane, BorderLayout.CENTER);
 
@@ -93,10 +103,9 @@ public class AdminDashboard extends JFrame {
         return mainContent;
     }
     
-    private JPanel createStatsPanel() {
-        JPanel statsPanel = new JPanel(new GridLayout(1, 4, 20, 0));
-        statsPanel.setBackground(backgroundColor);
-
+    private void updateStatsPanel() {
+        statsPanel.removeAll();
+        
         // Total Applications
         addStatCard(statsPanel, "Total Applications", String.valueOf(getTotalApplications()));
         
@@ -109,7 +118,8 @@ public class AdminDashboard extends JFrame {
         // Rejected Applications
         addStatCard(statsPanel, "Rejected Applications", String.valueOf(getRejectedApplications()));
 
-        return statsPanel;
+        statsPanel.revalidate();
+        statsPanel.repaint();
     }
     
     private void addStatCard(JPanel container, String title, String value) {
@@ -141,16 +151,26 @@ public class AdminDashboard extends JFrame {
     private void refreshApplications() {
         applicationsPanel.removeAll();
         
-        // Add header
-        JPanel headerPanel = new JPanel(new GridLayout(1, 5, 10, 0));
+        // Add header with proper spacing
+        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         headerPanel.setBackground(backgroundColor);
-        headerPanel.setMaximumSize(new Dimension(1300, 40));
-        
-        String[] headers = {"Scholarship", "Applicant", "GPA", "Status", "Actions"};
-        for (String header : headers) {
-            JLabel headerLabel = new JLabel(header);
+        headerPanel.setPreferredSize(new Dimension(1300, 40));
+
+        // Create headers with fixed widths matching the content
+        String[] headers = {"Rank", "Scholarship", "Applicant", "GWA", "Priority Score", "Assessment", "Status", "Actions"};
+        int[] widths = {50, 200, 200, 100, 100, 150, 100, 200};  // Match content widths
+
+        for (int i = 0; i < headers.length; i++) {
+            JLabel headerLabel = new JLabel(headers[i], SwingConstants.CENTER);
+            headerLabel.setPreferredSize(new Dimension(widths[i], 25));
             headerLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            headerLabel.setForeground(Color.WHITE);
+            headerLabel.setForeground(Color.black);
+            
+            // Add left padding to first column
+            if (i == 0) {
+                headerLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
+            }
+            
             headerPanel.add(headerLabel);
         }
         
@@ -162,7 +182,16 @@ public class AdminDashboard extends JFrame {
         for (String scholarship : scholarships) {
             List<Map<String, Object>> applications = userDAO.getApplicationsForScholarship(scholarship);
             
+            // Sort applications by priority score (highest first)
+            applications.sort((a, b) -> Double.compare(
+                (Double) b.get("priorityScore"), 
+                (Double) a.get("priorityScore")
+            ));
+
+            // Add rank to each application
+            int rank = 1;
             for (Map<String, Object> application : applications) {
+                application.put("rank", rank++);
                 JPanel applicationRow = createApplicationRow(scholarship, application);
                 applicationsPanel.add(applicationRow);
                 applicationsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
@@ -174,39 +203,69 @@ public class AdminDashboard extends JFrame {
     }
     
     private JPanel createApplicationRow(String scholarship, Map<String, Object> application) {
-        JPanel row = new JPanel(new GridLayout(1, 5, 10, 0));
+        // Use FlowLayout with left alignment and proper spacing
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         row.setBackground(Color.WHITE);
         row.setBorder(BorderFactory.createCompoundBorder(
             new LineBorder(new Color(230, 230, 230)),
-            BorderFactory.createEmptyBorder(15, 20, 15, 20)
+            BorderFactory.createEmptyBorder(15, 0, 15, 0)  // Remove horizontal padding, handled by FlowLayout
         ));
-        row.setMaximumSize(new Dimension(1300, 60));
+        row.setPreferredSize(new Dimension(1300, 60));
 
-        // Scholarship Title
-        JLabel scholarshipLabel = new JLabel(scholarship);
+        // Rank (fixed width)
+        JPanel rankContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        rankContainer.setBackground(Color.WHITE);
+        rankContainer.setPreferredSize(new Dimension(50, 25));
+        JLabel rankLabel = new JLabel("#" + application.get("rank"), SwingConstants.CENTER);
+        rankLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        rankContainer.add(rankLabel);
+        
+        // Scholarship Title (fixed width)
+        JLabel scholarshipLabel = new JLabel(scholarship, SwingConstants.LEFT);
+        scholarshipLabel.setPreferredSize(new Dimension(200, 25));
         scholarshipLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-        // Applicant Name
+        // Applicant Name (fixed width)
         String applicantName = application.get("firstName") + " " + application.get("lastName");
-        JLabel applicantLabel = new JLabel(applicantName);
+        JLabel applicantLabel = new JLabel(applicantName, SwingConstants.LEFT);
+        applicantLabel.setPreferredSize(new Dimension(200, 25));
         applicantLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
-        // GPA
-        JLabel gpaLabel = new JLabel(String.format("%.2f", application.get("gpa")));
+        // GPA (fixed width)
+        JLabel gpaLabel = new JLabel(String.format("%.2f", application.get("gpa")), SwingConstants.CENTER);
+        gpaLabel.setPreferredSize(new Dimension(100, 25));
         gpaLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
-        // Status
-        JLabel statusLabel = new JLabel((String) application.get("status"));
+        // Priority Score (fixed width)
+        JLabel scoreLabel = new JLabel(String.format("%.2f", application.get("priorityScore")), SwingConstants.CENTER);
+        scoreLabel.setPreferredSize(new Dimension(100, 25));
+        scoreLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        styleScoreLabel(scoreLabel, (Double) application.get("priorityScore"));
+
+        // Assessment (fixed width)
+        JLabel assessmentLabel = new JLabel((String) application.get("assessment"), SwingConstants.CENTER);
+        assessmentLabel.setPreferredSize(new Dimension(150, 25));
+        assessmentLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        styleAssessmentLabel(assessmentLabel);
+
+        // Status (fixed width)
+        JLabel statusLabel = new JLabel((String) application.get("status"), SwingConstants.CENTER);
+        statusLabel.setPreferredSize(new Dimension(100, 25));
         statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         styleStatusLabel(statusLabel);
 
-        // Action Buttons
-        JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        // Action Buttons Panel (fixed width)
+        JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
         actionsPanel.setBackground(Color.WHITE);
+        actionsPanel.setPreferredSize(new Dimension(200, 25));
 
         if ("PENDING".equals(application.get("status"))) {
             JButton acceptButton = new JButton("Accept");
             JButton rejectButton = new JButton("Reject");
+            
+            Dimension buttonSize = new Dimension(80, 25);
+            acceptButton.setPreferredSize(buttonSize);
+            rejectButton.setPreferredSize(buttonSize);
             
             styleActionButton(acceptButton, true);
             styleActionButton(rejectButton, false);
@@ -220,9 +279,14 @@ public class AdminDashboard extends JFrame {
             actionsPanel.add(rejectButton);
         }
 
+        // Add all components with proper spacing
+        row.add(Box.createHorizontalStrut(20));  // Left padding
+        row.add(rankContainer);
         row.add(scholarshipLabel);
         row.add(applicantLabel);
         row.add(gpaLabel);
+        row.add(scoreLabel);
+        row.add(assessmentLabel);
         row.add(statusLabel);
         row.add(actionsPanel);
 
@@ -251,10 +315,10 @@ public class AdminDashboard extends JFrame {
     
     private void styleActionButton(JButton button, boolean isAccept) {
         button.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        button.setPreferredSize(new Dimension(80, 30));
         button.setBorderPainted(false);
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setOpaque(true);
 
         if (isAccept) {
             button.setBackground(new Color(46, 204, 113));
@@ -264,16 +328,21 @@ public class AdminDashboard extends JFrame {
             button.setForeground(Color.WHITE);
         }
 
+        // Add hover effect
         button.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                button.setBackground(isAccept ? 
-                    new Color(39, 174, 96) : 
-                    new Color(192, 57, 43));
+                if (isAccept) {
+                    button.setBackground(new Color(39, 174, 96));
+                } else {
+                    button.setBackground(new Color(192, 57, 43));
+                }
             }
             public void mouseExited(MouseEvent e) {
-                button.setBackground(isAccept ? 
-                    new Color(46, 204, 113) : 
-                    new Color(231, 76, 60));
+                if (isAccept) {
+                    button.setBackground(new Color(46, 204, 113));
+                } else {
+                    button.setBackground(new Color(231, 76, 60));
+                }
             }
         });
     }
@@ -297,11 +366,72 @@ public class AdminDashboard extends JFrame {
         });
     }
     
+    private void styleScoreLabel(JLabel label, double score) {
+        label.setOpaque(true);
+        label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        
+        if (score >= 90) {
+            label.setBackground(new Color(231, 255, 236));
+            label.setForeground(new Color(46, 204, 113));
+        } else if (score >= 80) {
+            label.setBackground(new Color(255, 248, 230));
+            label.setForeground(new Color(241, 196, 15));
+        } else if (score >= 70) {
+            label.setBackground(new Color(255, 244, 230));
+            label.setForeground(new Color(255, 159, 67));
+        } else {
+            label.setBackground(new Color(255, 230, 230));
+            label.setForeground(new Color(231, 76, 60));
+        }
+    }
+    
+    private void styleAssessmentLabel(JLabel label) {
+        label.setOpaque(true);
+        label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        
+        switch (label.getText()) {
+            case "Excellent Candidate":
+                label.setBackground(new Color(231, 255, 236));
+                label.setForeground(new Color(46, 204, 113));
+                break;
+            case "Strong Candidate":
+                label.setBackground(new Color(255, 248, 230));
+                label.setForeground(new Color(241, 196, 15));
+                break;
+            case "Good Candidate":
+                label.setBackground(new Color(255, 244, 230));
+                label.setForeground(new Color(255, 159, 67));
+                break;
+            default:
+                label.setBackground(new Color(255, 230, 230));
+                label.setForeground(new Color(231, 76, 60));
+                break;
+        }
+    }
+    
     private void updateApplicationStatus(String scholarship, String email, String status, JLabel statusLabel) {
         if (userDAO.updateApplicationStatus(scholarship, email, status)) {
             statusLabel.setText(status);
             styleStatusLabel(statusLabel);
-            refreshApplications(); // Refresh to update statistics
+            
+            // Update both the statistics and applications panels
+            updateStatsPanel();
+            refreshApplications();
+            
+            // Show success message
+            String message = status.equals("ACCEPTED") ? 
+                "Application accepted successfully!" : 
+                "Application rejected successfully!";
+            JOptionPane.showMessageDialog(this, 
+                message,
+                "Status Updated",
+                JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            // Show error message if update fails
+            JOptionPane.showMessageDialog(this,
+                "Failed to update application status. Please try again.",
+                "Update Error",
+                JOptionPane.ERROR_MESSAGE);
         }
     }
     

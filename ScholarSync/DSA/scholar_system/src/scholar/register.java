@@ -3,9 +3,10 @@ package scholar;
 import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.plaf.basic.BasicComboPopup;
-
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.RoundRectangle2D;
+import javax.swing.DefaultListCellRenderer;
 
 public class register extends JFrame {
     private JTextField[] fields;
@@ -13,6 +14,10 @@ public class register extends JFrame {
     private Color primaryColor = new Color(25, 118, 210);
     private Color secondaryColor = new Color(66, 165, 245);
     private Color backgroundColor = new Color(248, 250, 253);
+    private Color textColor = new Color(33, 33, 33);
+    private Color inputBorderColor = new Color(224, 224, 224);
+    private Color inputFocusBorderColor = new Color(25, 118, 210);
+    private Color buttonHoverColor = new Color(21, 101, 192);
 
     public register() {
         userDAO = new UserDAO();
@@ -40,9 +45,23 @@ public class register extends JFrame {
     }
 
     private JPanel createLeftPanel() {
-        JPanel leftPanel = new JPanel();
-        leftPanel.setPreferredSize(new Dimension(400, 768));
-        leftPanel.setBackground(primaryColor);
+        JPanel leftPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                
+                // Create gradient paint
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, primaryColor,
+                    getWidth(), getHeight(), secondaryColor
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        leftPanel.setPreferredSize(new Dimension(683, 768));
         leftPanel.setLayout(new GridBagLayout());
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -52,42 +71,66 @@ public class register extends JFrame {
 
         // Logo
         JLabel logoLabel = new JLabel("ScholarSync");
-        logoLabel.setFont(new Font("Segoe UI", Font.BOLD, 36));
+        logoLabel.setFont(new Font("Segoe UI", Font.BOLD, 52));
         logoLabel.setForeground(Color.WHITE);
         leftPanel.add(logoLabel, gbc);
 
-        // Welcome Message
-        JLabel welcomeMsg = new JLabel("Create your account");
-        welcomeMsg.setFont(new Font("Segoe UI", Font.PLAIN, 20));
-        welcomeMsg.setForeground(Color.WHITE);
-        leftPanel.add(welcomeMsg, gbc);
+        // Slogan
+        JLabel sloganMsg = new JLabel("Your path to academic success");
+        JLabel subSloganMsg = new JLabel("Create your account");
+        sloganMsg.setFont(new Font("Segoe UI", Font.ITALIC, 28));
+        subSloganMsg.setFont(new Font("Segoe UI", Font.ITALIC, 16));
+        sloganMsg.setForeground(new Color(255, 255, 255, 220));
+        subSloganMsg.setForeground(new Color(255, 255, 255, 180));
+        leftPanel.add(sloganMsg, gbc);
+        leftPanel.add(subSloganMsg, gbc);
 
         return leftPanel;
     }
 
     private JPanel createRightPanel() {
         JPanel rightPanel = new JPanel();
-        rightPanel.setBackground(Color.WHITE);
-        rightPanel.setLayout(new BorderLayout());
+        rightPanel.setBackground(backgroundColor);
+        rightPanel.setLayout(new GridBagLayout());
 
-        // Form Container with Scroll
-        JPanel formContainer = new JPanel();
-        formContainer.setBackground(Color.WHITE);
-        formContainer.setLayout(new BoxLayout(formContainer, BoxLayout.Y_AXIS));
-        formContainer.setBorder(BorderFactory.createEmptyBorder(30, 60, 30, 60));
+        // Form Container with Shadow
+        JPanel formPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Paint shadow
+                g2.setColor(new Color(0, 0, 0, 20));
+                g2.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 20, 20);
+                
+                // Paint panel background
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth() - 3, getHeight() - 3, 20, 20);
+                g2.dispose();
+            }
+        };
+        
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setBackground(Color.WHITE);
+        formPanel.setBorder(BorderFactory.createEmptyBorder(40, 80, 40, 80));
+        formPanel.setPreferredSize(new Dimension(1200, 800));
 
         // Form Title
-        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        titlePanel.setBackground(Color.WHITE);
-        titlePanel.setMaximumSize(new Dimension(1000, 60));
-        
         JLabel titleLabel = new JLabel("Registration Form");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
-        titleLabel.setForeground(new Color(33, 33, 33));
-        titlePanel.add(titleLabel);
-        
-        formContainer.add(titlePanel);
-        formContainer.add(Box.createRigidArea(new Dimension(0, 30)));
+        titleLabel.setForeground(textColor);
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        formPanel.add(titleLabel);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 40)));
+
+        // Create a panel for the form fields with GridBagLayout for better organization
+        JPanel fieldsPanel = new JPanel(new GridBagLayout());
+        fieldsPanel.setBackground(Color.WHITE);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(12, 40, 12, 40); // Slightly reduced vertical spacing
+        gbc.weightx = 1.0;
 
         // Form Fields
         String[] labels = {
@@ -100,26 +143,21 @@ public class register extends JFrame {
         fields = new JTextField[labels.length];
         JComboBox<String> incomeBox = null;
 
-        // Create two columns for form fields with better spacing
-        JPanel fieldsPanel = new JPanel(new GridLayout(6, 2, 20, 20));
-        fieldsPanel.setBackground(Color.WHITE);
-        fieldsPanel.setMaximumSize(new Dimension(1000, 600));
-        fieldsPanel.setPreferredSize(new Dimension(1000, 500));
-        fieldsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
+        // Organize fields in a 2x6 grid
         for (int i = 0; i < labels.length; i++) {
+            gbc.gridx = i % 2;
+            gbc.gridy = i / 2;
+
             JPanel fieldContainer = new JPanel();
             fieldContainer.setLayout(new BoxLayout(fieldContainer, BoxLayout.Y_AXIS));
             fieldContainer.setBackground(Color.WHITE);
-            fieldContainer.setMaximumSize(new Dimension(450, 80));
-            fieldContainer.setPreferredSize(new Dimension(450, 80));
 
             JLabel label = new JLabel(labels[i]);
-            label.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            label.setForeground(new Color(66, 66, 66));
+            label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            label.setForeground(textColor);
             label.setAlignmentX(Component.LEFT_ALIGNMENT);
             fieldContainer.add(label);
-            fieldContainer.add(Box.createRigidArea(new Dimension(0, 8)));
+            fieldContainer.add(Box.createRigidArea(new Dimension(0, 5)));
 
             if (labels[i].toLowerCase().contains("password")) {
                 JPasswordField passField = new JPasswordField();
@@ -131,7 +169,21 @@ public class register extends JFrame {
                     "< ₱10,000", "< ₱30,000", "< ₱70,000", "< ₱100,000", "₱100,000 above"
                 });
                 styleComboBox(incomeBox);
-                fieldContainer.add(incomeBox);
+                
+                // Center the label
+                label.setHorizontalAlignment(JLabel.CENTER);
+                label.setAlignmentX(Component.CENTER_ALIGNMENT);
+                
+                // Create a panel to hold the centered label and combo box
+                JPanel incomePanel = new JPanel();
+                incomePanel.setLayout(new BoxLayout(incomePanel, BoxLayout.Y_AXIS));
+                incomePanel.setBackground(Color.WHITE);
+                incomePanel.add(label);
+                incomePanel.add(Box.createRigidArea(new Dimension(0, 5)));
+                incomePanel.add(incomeBox);
+                
+                fieldContainer.removeAll();
+                fieldContainer.add(incomePanel);
                 
                 JTextField dummy = new JTextField();
                 dummy.setVisible(false);
@@ -145,41 +197,46 @@ public class register extends JFrame {
                 fields[i] = textField;
             }
 
-            fieldsPanel.add(fieldContainer);
+            fieldsPanel.add(fieldContainer, gbc);
         }
 
-        formContainer.add(fieldsPanel);
-        formContainer.add(Box.createRigidArea(new Dimension(0, 30)));
+        formPanel.add(fieldsPanel);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 30))); // Reduced spacing before buttons
 
-        // Buttons Panel with better alignment
-        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
+        // Buttons Panel
+        JPanel buttonsPanel = new JPanel();
+        buttonsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 30, 10)); // Increased spacing between buttons
         buttonsPanel.setBackground(Color.WHITE);
-        buttonsPanel.setMaximumSize(new Dimension(1000, 60));
+        buttonsPanel.setMaximumSize(new Dimension(800, 70));
+        buttonsPanel.setPreferredSize(new Dimension(800, 70));
 
-        JButton registerButton = new JButton("Register");
-        styleButton(registerButton, true);
+        JButton registerButton = createStyledButton("Register", true);
+        JButton backButton = createStyledButton("Back to Login", false);
+
+        // Create a container for the buttons to ensure they stay together
+        JPanel buttonContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
+        buttonContainer.setBackground(Color.WHITE);
+        buttonContainer.setPreferredSize(new Dimension(500, 50));
+        buttonContainer.add(registerButton);
+        buttonContainer.add(backButton);
         
-        JButton backButton = new JButton("Back to Login");
-        styleButton(backButton, false);
-
-        buttonsPanel.add(registerButton);
-        buttonsPanel.add(backButton);
-
-        formContainer.add(buttonsPanel);
+        buttonsPanel.add(buttonContainer);
+        formPanel.add(buttonsPanel);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
         // Error Label
         JLabel errorLabel = new JLabel("");
         errorLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        errorLabel.setForeground(Color.RED);
+        errorLabel.setForeground(new Color(211, 47, 47));
         errorLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        formContainer.add(Box.createRigidArea(new Dimension(0, 20)));
-        formContainer.add(errorLabel);
+        formPanel.add(errorLabel);
 
-        // Add form to scroll pane
-        JScrollPane scrollPane = new JScrollPane(formContainer);
-        scrollPane.setBorder(null);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        rightPanel.add(scrollPane, BorderLayout.CENTER);
+        // Add form panel to right panel with adjusted constraints
+        GridBagConstraints formConstraints = new GridBagConstraints();
+        formConstraints.gridwidth = GridBagConstraints.REMAINDER;
+        formConstraints.anchor = GridBagConstraints.CENTER;
+        formConstraints.insets = new Insets(0, 40, 0, 40);
+        rightPanel.add(formPanel, formConstraints);
 
         // Register Button Action
         registerButton.addActionListener(e -> {
@@ -200,43 +257,46 @@ public class register extends JFrame {
     }
 
     private void styleField(JTextField field) {
-        field.setMaximumSize(new Dimension(450, 40));
-        field.setPreferredSize(new Dimension(450, 40));
+        field.setMaximumSize(new Dimension(450, 45));
+        field.setPreferredSize(new Dimension(450, 45));
         field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        field.setBorder(BorderFactory.createCompoundBorder(
-            new LineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
-        field.setBackground(Color.WHITE);
-
-        // Add focus listener for better visual feedback
+        field.setHorizontalAlignment(JTextField.LEFT);
+        
+        Border roundedBorder = new LineBorder(inputBorderColor, 1, true);
+        Border paddingBorder = BorderFactory.createEmptyBorder(5, 15, 5, 15);
+        field.setBorder(BorderFactory.createCompoundBorder(roundedBorder, paddingBorder));
+        
         field.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
                 field.setBorder(BorderFactory.createCompoundBorder(
-                    new LineBorder(primaryColor),
-                    BorderFactory.createEmptyBorder(8, 12, 8, 12)
+                    new LineBorder(inputFocusBorderColor, 2, true),
+                    paddingBorder
                 ));
             }
+            
             @Override
             public void focusLost(FocusEvent e) {
-                field.setBorder(BorderFactory.createCompoundBorder(
-                    new LineBorder(new Color(200, 200, 200)),
-                    BorderFactory.createEmptyBorder(8, 12, 8, 12)
-                ));
+                field.setBorder(BorderFactory.createCompoundBorder(roundedBorder, paddingBorder));
             }
         });
     }
 
     private void styleComboBox(JComboBox<String> comboBox) {
-        comboBox.setMaximumSize(new Dimension(450, 40));
-        comboBox.setPreferredSize(new Dimension(450, 40));
+        comboBox.setMaximumSize(new Dimension(450, 45));
+        comboBox.setPreferredSize(new Dimension(450, 45));
         comboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        comboBox.setBorder(BorderFactory.createCompoundBorder(
-            new LineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(4, 8, 4, 8)
-        ));
+        
+        Border roundedBorder = new LineBorder(inputBorderColor, 1, true);
+        Border paddingBorder = BorderFactory.createEmptyBorder(5, 10, 5, 10);
+        comboBox.setBorder(BorderFactory.createCompoundBorder(roundedBorder, paddingBorder));
+        
         comboBox.setBackground(Color.WHITE);
+        
+        // Add a custom renderer to center the text
+        DefaultListCellRenderer listRenderer = new DefaultListCellRenderer();
+        listRenderer.setHorizontalAlignment(DefaultListCellRenderer.CENTER);
+        comboBox.setRenderer(listRenderer);
         
         // Style the combo box popup
         Object child = comboBox.getAccessibleContext().getAccessibleChild(0);
@@ -245,58 +305,58 @@ public class register extends JFrame {
         list.setSelectionBackground(primaryColor);
         list.setSelectionForeground(Color.WHITE);
         
-        // Add focus listener for better visual feedback
-        comboBox.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                comboBox.setBorder(BorderFactory.createCompoundBorder(
-                    new LineBorder(primaryColor),
-                    BorderFactory.createEmptyBorder(4, 8, 4, 8)
-                ));
-            }
-            @Override
-            public void focusLost(FocusEvent e) {
-                comboBox.setBorder(BorderFactory.createCompoundBorder(
-                    new LineBorder(new Color(200, 200, 200)),
-                    BorderFactory.createEmptyBorder(4, 8, 4, 8)
-                ));
-            }
-        });
+        // Center text in the popup list as well
+        list.setCellRenderer(listRenderer);
     }
 
-    private void styleButton(JButton button, boolean isPrimary) {
-        button.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        button.setPreferredSize(new Dimension(200, 48));
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    private JButton createStyledButton(String text, boolean isPrimary) {
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                if (isPrimary) {
+                    if (getModel().isPressed()) {
+                        g2.setColor(buttonHoverColor);
+                    } else if (getModel().isRollover()) {
+                        g2.setColor(buttonHoverColor);
+                    } else {
+                        g2.setColor(primaryColor);
+                    }
+                } else {
+                    if (getModel().isPressed()) {
+                        g2.setColor(new Color(240, 240, 240));
+                    } else if (getModel().isRollover()) {
+                        g2.setColor(new Color(245, 245, 245));
+                    } else {
+                        g2.setColor(Color.WHITE);
+                    }
+                }
+                g2.fill(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 8, 8));
+                
+                if (!isPrimary) {
+                    g2.setColor(primaryColor);
+                    g2.setStroke(new BasicStroke(1.5f));
+                    g2.draw(new RoundRectangle2D.Double(1, 1, getWidth() - 2, getHeight() - 2, 8, 8));
+                }
+                
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        
+        // Reduced button size
+        button.setMaximumSize(new Dimension(150, 35));
+        button.setPreferredSize(new Dimension(150, 35));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setForeground(isPrimary ? Color.WHITE : primaryColor);
         button.setFocusPainted(false);
-
-        if (isPrimary) {
-            button.setBackground(primaryColor);
-            button.setForeground(Color.WHITE);
-            button.setBorderPainted(false);
-        } else {
-            button.setBackground(Color.WHITE);
-            button.setForeground(primaryColor);
-            button.setBorder(new LineBorder(primaryColor, 2));
-        }
-
-        // Add hover effect
-        button.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                if (isPrimary) {
-                    button.setBackground(secondaryColor);
-                } else {
-                    button.setBackground(new Color(245, 245, 255));
-                }
-            }
-            public void mouseExited(MouseEvent e) {
-                if (isPrimary) {
-                    button.setBackground(primaryColor);
-                } else {
-                    button.setBackground(Color.WHITE);
-                }
-            }
-        });
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        return button;
     }
 
     private boolean validateAndRegister() {

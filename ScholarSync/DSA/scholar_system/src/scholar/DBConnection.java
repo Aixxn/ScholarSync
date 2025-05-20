@@ -73,7 +73,7 @@ public class DBConnection {
                 ") ENGINE=InnoDB;"
             );
 
-            // Create applications table
+            // Create applications table with priority score
             stmt.execute(
                 "CREATE TABLE IF NOT EXISTS applications (" +
                 "id INT AUTO_INCREMENT PRIMARY KEY," +
@@ -81,6 +81,7 @@ public class DBConnection {
                 "scholarship_title VARCHAR(255) NOT NULL," +
                 "application_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
                 "status VARCHAR(50) NOT NULL," +
+                "priority_score DOUBLE NOT NULL," +
                 "FOREIGN KEY (user_email) REFERENCES users(email)," +
                 "FOREIGN KEY (scholarship_title) REFERENCES scholarships(title)" +
                 ") ENGINE=InnoDB;"

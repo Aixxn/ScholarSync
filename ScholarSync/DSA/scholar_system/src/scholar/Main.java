@@ -7,7 +7,7 @@ public class Main {
     private static final String ADMIN_PASSWORD = "admin123";
 
     public static void main(String[] args) {
-        new MyFrame(null); // Launch app
+        new login(); // Start with login page
     }
 
     public static boolean isAdmin(String username, String password) {

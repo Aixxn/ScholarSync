@@ -217,11 +217,11 @@ public class UserDAO {
 
     public List<Map<String, Object>> getApplicationsForScholarship(String scholarshipTitle) {
         List<Map<String, Object>> applications = new ArrayList<>();
-        String sql = "SELECT a.*, u.first_name, u.last_name, u.gpa " +
+        String sql = "SELECT a.*, u.first_name, u.last_name, u.gpa, u.track_strand, u.monthly_income " +
                     "FROM applications a " +
                     "JOIN users u ON a.user_email = u.email " +
                     "WHERE a.scholarship_title = ? " +
-                    "ORDER BY a.application_date DESC";
+                    "ORDER BY a.application_date DESC";  // Temporarily order by application date
         
         try {
             PreparedStatement stmt = conn.prepareStatement(sql);
@@ -230,14 +230,33 @@ public class UserDAO {
             
             while (rs.next()) {
                 Map<String, Object> application = new HashMap<>();
-                application.put("email", rs.getString("user_email"));
+                String email = rs.getString("user_email");
+                User user = getUserByEmail(email);
+                
+                // Calculate priority score
+                double priorityScore = ScoreCalculator.calculatePriorityScore(user);
+                String assessment = ScoreCalculator.getScoreAssessment(priorityScore);
+                
+                application.put("email", email);
                 application.put("firstName", rs.getString("first_name"));
                 application.put("lastName", rs.getString("last_name"));
                 application.put("gpa", rs.getDouble("gpa"));
+                application.put("trackStrand", rs.getString("track_strand"));
+                application.put("monthlyIncome", rs.getString("monthly_income"));
                 application.put("status", rs.getString("status"));
                 application.put("applicationDate", rs.getTimestamp("application_date"));
+                application.put("priorityScore", priorityScore);
+                application.put("assessment", assessment);
+                
                 applications.add(application);
             }
+
+            // Sort applications by priority score (highest first)
+            applications.sort((a, b) -> Double.compare(
+                (Double) b.get("priorityScore"), 
+                (Double) a.get("priorityScore")
+            ));
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -315,5 +334,60 @@ public class UserDAO {
             e.printStackTrace();
         }
         return titles;
+    }
+
+    // Add new method to submit application with scoring
+    public boolean submitApplication(String userEmail, String scholarshipTitle) {
+        // First check if the user has already applied
+        String checkSql = "SELECT COUNT(*) FROM applications WHERE user_email = ? AND scholarship_title = ?";
+        
+        try {
+            PreparedStatement checkStmt = conn.prepareStatement(checkSql);
+            checkStmt.setString(1, userEmail);
+            checkStmt.setString(2, scholarshipTitle);
+            ResultSet rs = checkStmt.executeQuery();
+            
+            if (rs.next() && rs.getInt(1) > 0) {
+                return false; // Already applied
+            }
+            
+            // Get user data for scoring
+            User user = getUserByEmail(userEmail);
+            double priorityScore = ScoreCalculator.calculatePriorityScore(user);
+            
+            // Insert application with priority score
+            String insertSql = "INSERT INTO applications (user_email, scholarship_title, status, priority_score) " +
+                             "VALUES (?, ?, 'PENDING', ?)";
+            
+            PreparedStatement insertStmt = conn.prepareStatement(insertSql);
+            insertStmt.setString(1, userEmail);
+            insertStmt.setString(2, scholarshipTitle);
+            insertStmt.setDouble(3, priorityScore);
+            
+            int rowsAffected = insertStmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                // Update applicant count in scholarships table
+                updateScholarshipApplicantCount(scholarshipTitle, true);
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    // Helper method to update applicant count
+    private void updateScholarshipApplicantCount(String scholarshipTitle, boolean increment) {
+        String sql = "UPDATE scholarships SET applicant_count = applicant_count " + 
+                    (increment ? "+ 1" : "- 1") + 
+                    " WHERE title = ?";
+        try {
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, scholarshipTitle);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
